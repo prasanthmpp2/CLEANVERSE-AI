@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLEANVERSE AI — Smart City Command Center</title>
+  <meta name="description"
+    content="Autonomous Smart City Intelligence Platform for real-time urban cleanliness monitoring, AI analysis, and predictive hotspot mapping." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+
+  <!-- Firebase Auth Guard: hide content until auth confirmed -->
+  <style>
+    #app-body {
+      display: none;
+    }
+
+    #auth-loading {
+      position: fixed;
+      inset: 0;
+      background: #050810;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.2rem;
+      z-index: 9999;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .auth-spinner {
+      width: 42px;
+      height: 42px;
+      border: 3px solid rgba(0, 229, 255, 0.15);
+      border-top-color: #00e5ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .auth-loading-text {
+      font-size: 0.82rem;
+      color: #4a6380;
+      letter-spacing: 0.1em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .auth-loading-brand {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      background: linear-gradient(135deg, #00e5ff, #2979ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ── User Profile chip in topbar ── */
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid rgba(0, 229, 255, 0.18);
+      border-radius: 50px;
+      padding: 0.25rem 0.75rem 0.25rem 0.3rem;
+      cursor: default;
+      position: relative;
+    }
+
+    .user-chip-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid #00e5ff;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .user-chip-avatar-placeholder {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid #00e5ff;
+      background: rgba(0, 229, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #00e5ff;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .user-chip-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-chip-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #e8f4ff;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-chip-email {
+      font-size: 0.58rem;
+      color: #4a6380;
+      font-family: 'JetBrains Mono', monospace;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .logout-btn {
+      background: rgba(255, 23, 68, 0.1);
+      border: 1px solid rgba(255, 23, 68, 0.25);
+      color: #ff4d6d;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.3rem 0.65rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      letter-spacing: 0.04em;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 23, 68, 0.2);
+      border-color: rgba(255, 23, 68, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Auth Loading Screen ─────────────────────────────────────────── -->
+  <div id="auth-loading">
+    <div class="auth-loading-brand">⚡ CLEANVERSE AI</div>
+    <div class="auth-spinner"></div>
+    <div class="auth-loading-text">VERIFYING IDENTITY…</div>
+  </div>
+
+  <!-- ── Main App (hidden until auth confirmed) ─────────────────────── -->
+  <div id="app-body">
+
+    <!-- ═══════════════════════════════════════════════════ HEADER / NAV ══ -->
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <div class="logo-badge">
+          <span class="logo-icon">⚡</span>
+          <div>
+            <div class="logo-title">CLEANVERSE AI</div>
+            <div class="logo-sub">Autonomous City Intelligence • Madurai Grid</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="topbar-nav">
+        <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')">📊 Command Center</button>
+        <button class="nav-btn" id="nav-report" onclick="switchTab('report')">📡 Report Incident</button>
+        <button class="nav-btn" id="nav-complaints" onclick="switchTab('complaints')">🗂️ Intelligence Feed</button>
+        <button class="nav-btn" id="nav-prediction" onclick="switchTab('prediction')">🔮 Prediction Engine</button>
+      </nav>
+
+      <div class="topbar-right">
+        {% if demo_mode %}
+        <div class="demo-badge">🧪 DEMO MODE</div>
+        {% else %}
+        <div class="live-badge">🔴 LIVE</div>
+        {% endif %}
+
+        <!-- User Profile Chip -->
+        <div class="user-chip" id="user-chip">
+          <div class="user-chip-avatar-placeholder" id="topbar-avatar">?</div>
+          <div class="user-chip-info">
+            <span class="user-chip-name" id="topbar-name">Loading…</span>
+            <span class="user-chip-email" id="topbar-email">—</span>
+          </div>
+        </div>
+
+        <button class="logout-btn" onclick="signOutUser()" title="Sign out">↩ Logout</button>
+        <div class="system-clock" id="system-clock">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════ SCAN LINE ══ -->
+    <div class="scan-overlay"></div>
+
+    <!-- ═══════════════════════════════════════════════════ MAIN ══ -->
+    <main class="main-content">
+
+      <!-- ══════════════════════ TAB: DASHBOARD ══ -->
+      <section id="tab-dashboard" class="tab-section active">
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card" id="kpi-total">
+            <div class="kpi-icon">📍</div>
+            <div class="kpi-value" id="kpi-total-val">—</div>
+            <div class="kpi-label">Total Reports</div>
+            <div class="kpi-subtext">Active grid entries</div>
+          </div>
+          <div class="kpi-card kpi-critical" id="kpi-critical">
+            <div class="kpi-icon">🔴</div>
+            <div class="kpi-value" id="kpi-critical-val">—</div>
+            <div class="kpi-label">Critical Threats</div>
+            <div class="kpi-subtext">Immediate response</div>
+          </div>
+          <div class="kpi-card kpi-clean" id="kpi-clean">
+            <div class="kpi-icon">🏙️</div>
+            <div class="kpi-value" id="kpi-clean-val">—</div>
+            <div class="kpi-label">Cleanliness Index</div>
+            <div class="kpi-subtext">City-wide average</div>
+          </div>
+          <div class="kpi-card kpi-resolved" id="kpi-resolved">
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-value" id="kpi-resolved-val">—</div>
+            <div class="kpi-label">Resolved Today</div>
+            <div class="kpi-subtext">Closed incidents</div>
+          </div>
+          <div class="kpi-card kpi-avg" id="kpi-avg">
+            <div class="kpi-icon">⚡</div>
+            <div class="kpi-value" id="kpi-avg-val">—</div>
+            <div class="kpi-label">Avg Priority Score</div>
+            <div class="kpi-subtext">System threat level</div>
+          </div>
+        </div>
+
+        <div class="dashboard-cols">
+          <div class="panel panel-wide">
+            <div class="panel-header">
+              <span class="panel-title">🔥 Priority Incident Queue</span>
+              <span class="panel-badge" id="incident-badge">LIVE</span>
+            </div>
+            <div class="panel-body">
+              <div id="priority-list" class="priority-list">
+                <div class="loading-spinner">
+                  <div class="spinner"></div><span>Querying AI Grid…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">📈 Status Distribution</span></div>
+            <div class="panel-body">
+              <div id="status-chart" class="status-chart"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:1.5rem;">
+          <div class="panel-header">
+            <span class="panel-title">🧠 AI Category Distribution</span>
+            <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh</button>
+          </div>
+          <div class="panel-body">
+            <div id="category-grid" class="category-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ TAB: REPORT ══ -->
+      <section id="tab-report" class="tab-section">
+        <div class="report-container">
+          <div class="report-header">
+            <h1 class="report-title">📡 Submit Incident Report</h1>
+            <p class="report-subtitle">CLEANVERSE AI will instantly analyze your report using multi-agent AI.</p>
+          </div>
+          <form id="complaint-form" class="complaint-form" enctype="multipart/form-data">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">📝 Incident Description *</label>
+                <textarea id="complaint-text" name="text" class="form-input form-textarea"
+                  placeholder="Describe the problem in detail…" rows="5" required></textarea>
+              </div>
+            </div>
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label class="form-label">📍 Location / Zone *</label>
+                <input type="text" id="complaint-location" name="location" class="form-input"
+                  placeholder="e.g. Meenakshi Temple Area, Madurai" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">🖼️ Photo Evidence (optional)</label>
+                <div class="file-drop-zone" id="file-drop-zone"
+                  onclick="document.getElementById('complaint-image').click()">
+                  <input type="file" id="complaint-image" name="image" accept="image/*" style="display:none"
+                    onchange="handleFileSelect(this)" />
+                  <div class="file-drop-content" id="file-drop-content">
+                    <span class="file-drop-icon">📷</span>
+                    <span>Click or drag image here</span>
+                    <span class="file-drop-hint">JPG, PNG, WebP · Max 10MB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="quick-fills">
+              <span class="quick-fill-label">Quick Fill:</span>
+              <button type="button" class="quick-chip" onclick="quickFill(0)">🗑️ Garbage Dump</button>
+              <button type="button" class="quick-chip" onclick="quickFill(1)">💧 Drain Overflow</button>
+              <button type="button" class="quick-chip" onclick="quickFill(2)">🚧 Pothole</button>
+              <button type="button" class="quick-chip" onclick="quickFill(3)">💨 Air Pollution</button>
+              <button type="button" class="quick-chip" onclick="quickFill(4)">💡 Street Light</button>
+            </div>
+            <button type="submit" class="submit-btn" id="submit-btn">
+              <span id="btn-text">🚀 TRANSMIT TO AI GRID</span>
+              <span id="btn-loading" style="display:none">⏳ Processing…</span>
+            </button>
+          </form>
+          <div id="ai-response-panel" class="ai-response-panel" style="display:none">
+            <div class="ai-response-header">
+              <div class="ai-response-title">🧠 CLEANVERSE AI — Analysis Complete</div>
+              <div id="ai-urgency-badge" class="ai-urgency-badge"></div>
+            </div>
+            <div id="ai-response-body" class="ai-response-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ TAB: COMPLAINTS ══ -->
+      <section id="tab-complaints" class="tab-section">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">🗂️ Intelligence Feed — All Incidents</span>
+            <div class="panel-actions">
+              <select id="filter-urgency" class="filter-select" onchange="loadComplaints()">
+                <option value="">All Urgency</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <button class="refresh-btn" onclick="loadComplaints()">↻ Refresh</button>
+            </div>
+          </div>
+          <div id="complaints-grid" class="complaints-grid">
+            <div class="loading-spinner">
+              <div class="spinner"></div><span>Loading intelligence feed…</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════ TAB: PREDICTION ══ -->
+      <section id="tab-prediction" class="tab-section">
+        <div class="prediction-header-row">
+          <div>
+            <h1 class="prediction-title">🔮 Predictive Hotspot Engine</h1>
+            <p class="prediction-sub">LSTM-based risk forecasting using historical complaint patterns &amp; geospatial
+              analysis.</p>
+          </div>
+          <button class="refresh-btn large-btn" onclick="loadPredictions()">↻ Run Prediction Model</button>
+        </div>
+        <div id="prediction-summary-card" class="prediction-summary-card" style="display:none"></div>
+        <div class="prediction-cols">
+          <div class="panel panel-wide">
+            <div class="panel-header"><span class="panel-title">🗺️ Risk Heatmap — Madurai Grid</span></div>
+            <div class="panel-body" id="prediction-map-container">
+              <div id="prediction-map" class="prediction-map"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">📊 Zone Risk Rankings</span></div>
+            <div class="panel-body">
+              <div id="hotspot-list" class="hotspot-list">
+                <div class="loading-spinner">
+                  <div class="spinner"></div><span>Loading prediction model…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════ MODAL ══ -->
+    <div id="complaint-modal" class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal-card">
+        <button class="modal-close" onclick="closeModalDirect()">✕</button>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ AGENT LOG ══ -->
+    <div class="agent-log-panel" id="agent-log">
+      <div class="agent-log-header">
+        <span>🤖 AUTONOMOUS AGENT LOG</span>
+        <button onclick="clearLog()" class="log-clear-btn">Clear</button>
+      </div>
+      <div id="agent-log-body" class="agent-log-body"></div>
+    </div>
+    <button class="agent-log-toggle" onclick="toggleLog()">🤖 AGENT LOG</button>
+
+  </div><!-- /#app-body -->
+
+  <!-- ══════════════════════════════════════════════════════════════
+     Firebase SDK + Auth Guard
+     ═══════════════════════════════════════════════════════════ -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script>
+    // ── Firebase init ────────────────────────────────────────────────────────────
+    const firebaseConfig = {
+      apiKey: "AIzaSyDz82Psr5mvdTap8kfpC_G1UrNdTufwOZs",
+      authDomain: "built-with-ai-e59a1.firebaseapp.com",
+      projectId: "built-with-ai-e59a1",
+      storageBucket: "built-with-ai-e59a1.firebasestorage.app",
+      messagingSenderId: "998950809454",
+      appId: "1:998950809454:web:c7d100a75a362526879b7f",
+      measurementId: "G-V9W39GJKFX"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // ── Auth state guard ─────────────────────────────────────────────────────────
+    auth.onAuthStateChanged(function (user) {
+      document.getElementById('auth-loading').style.display = 'none';
+
+      if (!user) {
+        // Not logged in → redirect to login page
+        window.location.href = '/login';
+        return;
+      }
+
+      // ── Show the app ──────────────────────────────────────────────────────────
+      document.getElementById('app-body').style.display = 'block';
+
+      // ── Populate topbar user chip ─────────────────────────────────────────────
+      const name = user.displayName || 'Citizen Agent';
+      const email = user.email || '';
+      const photo = user.photoURL;
+
+      document.getElementById('topbar-name').textContent = name;
+      document.getElementById('topbar-email').textContent = email;
+
+      const avatarEl = document.getElementById('topbar-avatar');
+      if (photo) {
+        avatarEl.outerHTML =
+          `<img id="topbar-avatar" class="user-chip-avatar" src="${photo}"
+            alt="avatar" referrerpolicy="no-referrer"/>`;
+      } else {
+        avatarEl.textContent = name.charAt(0).toUpperCase();
+      }
+
+      // ── Store for dashboard.js use (e.g. attaching reporter name to complaints)
+      window.CV_USER = { uid: user.uid, name, email, photo };
+
+      // ── Greeting log (will run after dashboard.js loads) ─────────────────────
+      setTimeout(() => {
+        if (typeof agentLog === 'function') {
+          agentLog(`Auth OK — Welcome, ${name} (${email})`, 'success');
+        }
+      }, 800);
+    });
+
+    // ── Logout ───────────────────────────────────────────────────────────────────
+    function signOutUser() {
+      auth.signOut().then(() => {
+        sessionStorage.removeItem('cv_user');
+        window.location.href = '/login';
+      });
+    }
+  </script>
+
+  <!-- Dashboard controller (loaded after Firebase so auth state is available) -->
+  <script src="/static/js/dashboard.js"></script>
+</body>
+
+</html>
